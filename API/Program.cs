@@ -1,7 +1,11 @@
+using API.Errors;
 using API.Helpers;
+using API.Middleware;
 using Core.Interfaces;
 using Infrastructure.Data;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +18,23 @@ builder.Services.AddDbContext<AppDbContext>(x => x.UseSqlite(builder.Configurati
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), (typeof(GenericRepository<>)));
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
+//My Validation Error Response
+builder.Services.Configure<ApiBehaviorOptions>(options => 
+{
+    options.InvalidModelStateResponseFactory = actionContext =>
+    {
+        var errors = actionContext.ModelState
+            .Where(e => e.Value.Errors.Count > 0)
+            .SelectMany(x => x.Value.Errors)
+            .Select(x => x.ErrorMessage).ToArray();
+        
+        var errorResponse = new ApiValidationErrorResponse
+        {
+            Errors = errors
+        };
+        return new BadRequestObjectResult(errorResponse);
+    };
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -40,11 +61,29 @@ using(var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+//MySwagger
+// builder.Services.AddSwaggerGen(c =>
+// {
+//     c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
+// });
+
+//Myapp
+app.UseMiddleware<ExceptionMiddleware>();
+app.UseSwagger();   // I put out from IsDevelopment
+app.UseSwaggerUI(); // I put out from IsDevelopment and commented IsDevelopment
+
+// if (app.Environment.IsDevelopment())
+// {
+//     //Myapp
+//     // app.UseDeveloperExceptionPage();
+
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+//     // app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1")); //I Modify it from app.UseSwaggerUI();
+// }
+//Myapps
+app.UseStatusCodePagesWithReExecute("/errors/{0}");
 
 app.UseHttpsRedirection();
 
@@ -53,6 +92,12 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseAuthorization();
+
+//Myapp
+// app.UseEndpoints(endpoints => 
+// {
+//     endpoints.MapControllers();
+// });  Not important
 
 app.MapControllers();
 
