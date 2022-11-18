@@ -21,6 +21,14 @@ builder.Services.AddApplicationServices();
 
 //From SwaggerServiceExtension
 builder.Services.AddSwaggerDocumentation();
+//My
+builder.Services.AddCors(opt => 
+{
+    opt.AddPolicy("CorsPolicy", policy => 
+    {
+        policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://localhost:4200");
+    });
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -55,6 +63,9 @@ app.UseHttpsRedirection();
 //Myapps Not important
 // app.UseRouting(); 
 app.UseStaticFiles();
+
+//My
+app.UseCors("CorsPolicy");
 
 app.UseAuthorization();
 
